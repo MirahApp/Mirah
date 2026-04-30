@@ -18,6 +18,8 @@ plugins {
     alias(libs.plugins.sqldelight) apply false
 
     alias(mihonx.plugins.spotless)
+
+    id("org.jetbrains.compose") version "1.6.11" apply false
 }
 
 val buildLogic: IncludedBuild = gradle.includedBuild("build-logic")
