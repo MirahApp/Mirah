@@ -2,6 +2,7 @@ package mirah.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -56,6 +57,7 @@ import java.io.File
 fun LibraryScreen() {
     var mangaList by remember { mutableStateOf<List<LocalManga>>(emptyList()) }
     var isLoading by remember { mutableStateOf(false) }
+    var selectedManga by remember { mutableStateOf<LocalManga?>(null) }
 
     LaunchedEffect(Unit) {
         isLoading = true
@@ -71,70 +73,78 @@ fun LibraryScreen() {
         isLoading = false
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF0D0D0D))
-    ) {
-        // Manual Top Bar
-        Row(
+    if (selectedManga != null) {
+        MangaDetailScreen(
+            manga = selectedManga!!,
+            onBack = { selectedManga = null }
+        )
+    } else {
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(64.dp)
-                .padding(horizontal = 16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .fillMaxSize()
+                .background(Color(0xFF0D0D0D))
         ) {
-            Text(
-                text = "Library",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = OnSurface,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = {}) {
-                Icon(Icons.Default.Search, contentDescription = "Search", tint = OnSurface)
-            }
-            IconButton(onClick = {}) {
-                Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = OnSurface)
-            }
-        }
-
-        if (mangaList.isEmpty() && !isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
+            // Manual Top Bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp)
+                    .padding(horizontal = 16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "Your library is empty",
-                        color = OnSurfaceMuted,
-                        fontSize = 16.sp
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Add CBZ or ZIP files to ~/Mirah/Library",
-                        color = OnSurfaceMuted,
-                        fontSize = 13.sp
-                    )
+                Text(
+                    text = "Library",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = OnSurface,
+                    modifier = Modifier.weight(1f)
+                )
+                IconButton(onClick = {}) {
+                    Icon(Icons.Default.Search, contentDescription = "Search", tint = OnSurface)
+                }
+                IconButton(onClick = {}) {
+                    Icon(Icons.Default.FilterList, contentDescription = "Filter", tint = OnSurface)
                 }
             }
-        } else {
-            // Grid
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(minSize = 160.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(0.dp),
-                verticalArrangement = Arrangement.spacedBy(3.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp)
-            ) {
-                items(mangaList) { manga ->
-                    MangaGridItem(
-                        title = manga.title,
-                        unreadCount = 0,
-                        coverImage = manga.coverImage
-                    )
+
+            if (mangaList.isEmpty() && !isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = "Your library is empty",
+                            color = OnSurfaceMuted,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Add CBZ or ZIP files to ~/Mirah/Library",
+                            color = OnSurfaceMuted,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+            } else {
+                // Grid
+                LazyVerticalGrid(
+                    columns = GridCells.Adaptive(minSize = 160.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(0.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    items(mangaList) { manga ->
+                        MangaGridItem(
+                            title = manga.title,
+                            unreadCount = 0,
+                            coverImage = manga.coverImage,
+                            onClick = { selectedManga = manga }
+                        )
+                    }
                 }
             }
         }
@@ -142,13 +152,19 @@ fun LibraryScreen() {
 }
 
 @Composable
-private fun MangaGridItem(title: String, unreadCount: Int, coverImage: ByteArray?) {
+private fun MangaGridItem(
+    title: String,
+    unreadCount: Int,
+    coverImage: ByteArray?,
+    onClick: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .aspectRatio(2f / 3f)
             .clip(RoundedCornerShape(8.dp))
             .background(SurfaceContainer)
+            .clickable(onClick = onClick)
     ) {
         // Cover Image
         if (coverImage != null) {
