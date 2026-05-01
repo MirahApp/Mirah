@@ -1,12 +1,13 @@
 package mirah.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
@@ -15,30 +16,61 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toComposeImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import mirah.local.LocalLibraryScanner
+import mirah.local.LocalManga
 import mirah.ui.MirahRed
 import mirah.ui.OnSurface
+import mirah.ui.OnSurfaceMuted
 import mirah.ui.SurfaceContainer
+import org.jetbrains.skia.Image as SkiaImage
+import java.io.File
 
 @Composable
 fun LibraryScreen() {
+    var mangaList by remember { mutableStateOf<List<LocalManga>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isLoading = true
+        val userHome = System.getProperty("user.home")
+        val libraryFolder = File(userHome, "Mirah/Library")
+        if (!libraryFolder.exists()) {
+            libraryFolder.mkdirs()
+        }
+        val result = withContext(Dispatchers.IO) {
+            LocalLibraryScanner.scanFolder(libraryFolder)
+        }
+        mangaList = result
+        isLoading = false
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -67,28 +99,50 @@ fun LibraryScreen() {
             }
         }
 
-        // Grid
-        LazyVerticalGrid(
-            columns = GridCells.Adaptive(minSize = 160.dp),
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            contentPadding = PaddingValues(0.dp),
-            verticalArrangement = Arrangement.spacedBy(3.dp),
-            horizontalArrangement = Arrangement.spacedBy(3.dp)
-        ) {
-            items(20) { index ->
-                MangaGridItem(
-                    title = "Manga Title $index",
-                    unreadCount = index % 5
-                )
+        if (mangaList.isEmpty() && !isLoading) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "Your library is empty",
+                        color = OnSurfaceMuted,
+                        fontSize = 16.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Add CBZ or ZIP files to ~/Mirah/Library",
+                        color = OnSurfaceMuted,
+                        fontSize = 13.sp
+                    )
+                }
+            }
+        } else {
+            // Grid
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = 160.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                contentPadding = PaddingValues(0.dp),
+                verticalArrangement = Arrangement.spacedBy(3.dp),
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                items(mangaList) { manga ->
+                    MangaGridItem(
+                        title = manga.title,
+                        unreadCount = 0,
+                        coverImage = manga.coverImage
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-private fun MangaGridItem(title: String, unreadCount: Int) {
+private fun MangaGridItem(title: String, unreadCount: Int, coverImage: ByteArray?) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -96,6 +150,19 @@ private fun MangaGridItem(title: String, unreadCount: Int) {
             .clip(RoundedCornerShape(8.dp))
             .background(SurfaceContainer)
     ) {
+        // Cover Image
+        if (coverImage != null) {
+            val bitmap = remember(coverImage) {
+                SkiaImage.makeFromEncoded(coverImage).toComposeImageBitmap()
+            }
+            Image(
+                bitmap = bitmap,
+                contentDescription = title,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+        }
+
         // Scrim and Title
         Box(
             modifier = Modifier
