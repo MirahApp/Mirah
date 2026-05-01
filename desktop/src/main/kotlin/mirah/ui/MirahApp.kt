@@ -40,6 +40,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import mirah.ui.screens.LibraryScreen
+import mirah.ui.screens.BrowseScreen
+import mirah.ui.screens.HistoryScreen
 
 val MirahRed = Color(0xFFCC0000)
 val SurfaceDark = Color(0xFF0D0D0D)
@@ -133,6 +135,8 @@ fun MirahApp() {
                 ) {
                     when (selectedItem) {
                         0 -> LibraryScreen()
+                        1 -> BrowseScreen()
+                        2 -> HistoryScreen()
                         else -> {
                             Box(
                                 modifier = Modifier.fillMaxSize(),
