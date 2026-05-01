@@ -1,17 +1,16 @@
 package mirah.ui
 
 import androidx.compose.foundation.Image
-import androidx.compose.ui.res.painterResource
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.TooltipArea
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -36,22 +35,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import mirah.ui.screens.LibraryScreen
 
-@OptIn(ExperimentalFoundationApi::class)
+val MirahRed = Color(0xFFCC0000)
+val SurfaceDark = Color(0xFF0D0D0D)
+val SurfaceContainer = Color(0xFF1A1A1A)
+val OnSurfaceMuted = Color(0xFF938F99)
+val OnSurface = Color(0xFFE6E1E5)
+
 @Composable
 fun MirahApp() {
-    val mirahRed = Color(0xFFCC0000)
-    val sidebarBg = Color(0xFF111111)
-    val contentBg = Color(0xFF161616)
-    val inactiveIcon = Color(0xFF888888)
-    val textColor = Color(0xFFEEEEEE)
-
     val colorScheme = darkColorScheme(
-        primary = mirahRed,
-        background = sidebarBg,
-        surface = contentBg
+        primary = MirahRed,
+        background = SurfaceDark,
+        surface = SurfaceContainer,
+        onSurface = OnSurface,
+        onSurfaceVariant = OnSurfaceMuted
     )
 
     var selectedItem by remember { mutableStateOf(0) }
@@ -63,124 +66,132 @@ fun MirahApp() {
     )
 
     MaterialTheme(colorScheme = colorScheme) {
-        Surface(modifier = Modifier.fillMaxSize()) {
+        Surface(modifier = Modifier.fillMaxSize(), color = SurfaceDark) {
             Row(modifier = Modifier.fillMaxSize()) {
                 // Sidebar
                 Column(
                     modifier = Modifier
-                        .width(56.dp)
+                        .width(72.dp)
                         .fillMaxHeight()
-                        .background(sidebarBg),
+                        .background(SurfaceDark),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "म",
-                        color = mirahRed,
-                        fontSize = 22.sp,
-                        modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
+                    Image(
+                        painter = painterResource("icon-1024.png"),
+                        contentDescription = "Mirah",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier
+                            .padding(top = 16.dp, bottom = 24.dp)
+                            .size(32.dp)
                     )
 
-                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    // Middle items (Library, Browse, History)
-                    listOf(0, 1, 2).forEach { index ->
-                        val item = navItems[index]
-                        val isSelected = selectedItem == index
-                        TooltipArea(
-                            tooltip = {
-                                Surface(
-                                    modifier = Modifier.padding(8.dp),
-                                    shape = RoundedCornerShape(4.dp),
-                                    color = Color.DarkGray
-                                ) {
-                                    Text(
-                                        text = item.name,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                        color = Color.White,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(40.dp)
-                                    .clip(RoundedCornerShape(10.dp))
-                                    .background(if (isSelected) mirahRed else Color.Transparent)
-                                    .clickable { selectedItem = index },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = item.name,
-                                    modifier = Modifier.size(24.dp),
-                                    tint = if (isSelected) Color.White else inactiveIcon
-                                )
-                            }
-                        }
-                        if (index < 2) {
-                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(8.dp))
-                        }
-                    }
+                    // Main nav items
+                    SidebarItem(
+                        entry = navItems[0],
+                        isSelected = selectedItem == 0,
+                        onClick = { selectedItem = 0 }
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    SidebarItem(
+                        entry = navItems[1],
+                        isSelected = selectedItem == 1,
+                        onClick = { selectedItem = 1 }
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    SidebarItem(
+                        entry = navItems[2],
+                        isSelected = selectedItem == 2,
+                        onClick = { selectedItem = 2 }
+                    )
 
-                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.weight(1f))
+                    Spacer(modifier = Modifier.weight(1f))
 
-                    // Bottom item (Settings)
-                    val settingsIndex = 3
-                    val settingsItem = navItems[settingsIndex]
-                    val isSettingsSelected = selectedItem == settingsIndex
-                    TooltipArea(
-                        tooltip = {
-                            Surface(
-                                modifier = Modifier.padding(8.dp),
-                                shape = RoundedCornerShape(4.dp),
-                                color = Color.DarkGray
-                            ) {
-                                Text(
-                                    text = settingsItem.name,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                    color = Color.White,
-                                    fontSize = 12.sp
-                                )
-                            }
-                        }
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(if (isSettingsSelected) mirahRed else Color.Transparent)
-                                .clickable { selectedItem = settingsIndex },
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = settingsItem.icon,
-                                contentDescription = settingsItem.name,
-                                modifier = Modifier.size(24.dp),
-                                tint = if (isSettingsSelected) Color.White else inactiveIcon
-                            )
-                        }
-                    }
-                    androidx.compose.foundation.layout.Spacer(modifier = Modifier.height(16.dp))
+                    // Bottom item
+                    SidebarItem(
+                        entry = navItems[3],
+                        isSelected = selectedItem == 3,
+                        onClick = { selectedItem = 3 }
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
                 }
+
+                // Vertical Divider
+                Box(
+                    modifier = Modifier
+                        .width(1.dp)
+                        .fillMaxHeight()
+                        .background(SurfaceContainer)
+                )
 
                 // Content Area
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(contentBg),
-                    contentAlignment = Alignment.Center
+                        .background(SurfaceDark)
                 ) {
-                    Text(
-                        text = navItems[selectedItem].name,
-                        color = textColor,
-                        fontSize = 24.sp
-                    )
+                    when (selectedItem) {
+                        0 -> LibraryScreen()
+                        else -> {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = navItems[selectedItem].name,
+                                    color = OnSurface,
+                                    style = MaterialTheme.typography.headlineLarge
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+@Composable
+private fun SidebarItem(
+    entry: NavEntry,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val contentColor = if (isSelected) MirahRed else OnSurfaceMuted
+    
+    Column(
+        modifier = Modifier
+            .width(72.dp)
+            .clickable(
+                onClick = onClick,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(width = 56.dp, height = 40.dp)
+                .clip(RoundedCornerShape(50))
+                .background(if (isSelected) MirahRed.copy(alpha = 0.15f) else Color.Transparent),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = entry.icon,
+                contentDescription = entry.name,
+                modifier = Modifier.size(24.dp),
+                tint = contentColor
+            )
+        }
+        
+        Text(
+            text = entry.name,
+            color = contentColor,
+            fontSize = 10.sp,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+}
+
 private data class NavEntry(val name: String, val icon: ImageVector)
-(val name: String, val icon: ImageVector)
