@@ -7,6 +7,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
+import mirah.ui.MirahApp
 import java.awt.Dimension
 
 fun main() = application {
@@ -16,11 +17,6 @@ fun main() = application {
     ) {
         window.minimumSize = Dimension(1000, 700)
 
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("Mirah")
-        }
+        MirahApp()
     }
 }
