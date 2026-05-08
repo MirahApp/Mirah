@@ -11,6 +11,13 @@ The format is a modified version of [Keep a Changelog](https://keepachangelog.co
 - `Other` - for technical stuff.
 
 ## [Unreleased]
+### Added
+- Desktop extension compatibility diagnostics report at `~/.mirah/logs/extension-compat-report.txt`.
+- Browse Sources tab now lists installed extension sources and supports opening source details.
+
+### Improved
+- Harden desktop extension loading with safer class instantiation, per-jar caching, and failure isolation.
+- Reduced noisy loader logs with summarized compatibility failure reporting per extension jar.
 
 ## [v0.19.9] - 2026-04-11
 ### Fixed

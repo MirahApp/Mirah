@@ -17,7 +17,7 @@ data class RemoteExtension(
 object ExtensionRepository {
 
     private const val indexUrl = "https://raw.githubusercontent.com/keiyoushi/extensions/repo/index.min.json"
-    private const val downloadBaseUrl = "https://github.com/keiyoushi/extensions/releases/download/latest/"
+    private const val downloadBaseUrl = "https://raw.githubusercontent.com/keiyoushi/extensions/repo/apk/"
 
     fun fetchExtensions(): List<RemoteExtension> {
         return try {
@@ -61,15 +61,32 @@ object ExtensionRepository {
         }
     }
 
-    fun downloadApk(extension: RemoteExtension, destDir: File): File {
+   fun downloadApk(extension: RemoteExtension, destDir: File): File {
         destDir.mkdirs()
         val destFile = File(destDir, extension.apkFileName)
 
         try {
-            val connection = URL(extension.downloadUrl).openConnection() as HttpURLConnection
+            var url = URL(extension.downloadUrl)
+            var connection = url.openConnection() as HttpURLConnection
             connection.connectTimeout = 10000
-            connection.readTimeout = 15000
+            connection.readTimeout = 30000
             connection.setRequestProperty("User-Agent", "Mirah/1.0")
+            connection.instanceFollowRedirects = true
+
+            // Follow redirects manually if needed
+            var responseCode = connection.responseCode
+            while (responseCode == HttpURLConnection.HTTP_MOVED_TEMP ||
+                responseCode == HttpURLConnection.HTTP_MOVED_PERM ||
+                responseCode == 307 || responseCode == 308) {
+                val newUrl = connection.getHeaderField("Location")
+                connection.disconnect()
+                url = URL(newUrl)
+                connection = url.openConnection() as HttpURLConnection
+                connection.connectTimeout = 10000
+                connection.readTimeout = 30000
+                connection.setRequestProperty("User-Agent", "Mirah/1.0")
+                responseCode = connection.responseCode
+            }
 
             connection.inputStream.use { input ->
                 destFile.outputStream().use { output ->

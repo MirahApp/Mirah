@@ -8,15 +8,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import mirah.ui.MirahApp
+import mirah.extensions.InjektSetup
 import java.awt.Dimension
 
-fun main() = application {
-    Window(
-        onCloseRequest = ::exitApplication,
-        title = "Mirah",
-    ) {
-        window.minimumSize = Dimension(1000, 700)
+fun main() {
+    InjektSetup.init()
+    application {
+        Window(
+            onCloseRequest = ::exitApplication,
+            title = "Mirah",
+        ) {
+            window.minimumSize = Dimension(1000, 700)
 
-        MirahApp()
+            MirahApp()
+        }
     }
 }

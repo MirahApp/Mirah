@@ -21,6 +21,8 @@ No stable release yet.
 
 * Local reading of content.
 * Library management.
+* Desktop extension pipeline (Keiyoushi index fetch, APK install, source loading).
+* Browse -> Sources tab integration for installed extension sources.
 * Tracker support: MyAnimeList, AniList, Kitsu, MangaUpdates, Shikimori, and Bangumi.
 * Categories to organize your library.
 * Light and dark themes.

@@ -19,6 +19,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.0.0-alpha.14")
     implementation("org.jsoup:jsoup:1.17.2")
     implementation("io.reactivex:rxjava:1.3.8")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
+    implementation("uy.kohesive.injekt:injekt-core:1.16.1")
 }
 
 compose.desktop {

@@ -1,6 +1,7 @@
 package mirah.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.TabRowDefaults
@@ -44,6 +46,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import eu.kanade.tachiyomi.source.Source
 import mirah.extensions.ApkExtensionInstaller
 import mirah.extensions.ExtensionRepository
 import mirah.extensions.RemoteExtension
@@ -60,23 +63,43 @@ fun BrowseScreen() {
 
     var extensions by remember { mutableStateOf<List<RemoteExtension>>(emptyList()) }
     var isLoadingExtensions by remember { mutableStateOf(false) }
+    var isLoadingSources by remember { mutableStateOf(false) }
     var installedPackageNames by remember { mutableStateOf<Set<String>>(emptySet()) }
+    var installedSources by remember { mutableStateOf<List<Source>>(emptyList()) }
     var installingPackage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    var sourceErrorMessage by remember { mutableStateOf<String?>(null) }
+    var selectedSource by remember { mutableStateOf<Source?>(null) }
 
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         isLoadingExtensions = true
+        isLoadingSources = true
         val fetched: List<RemoteExtension> = withContext(Dispatchers.IO) {
             ExtensionRepository.fetchExtensions()
         }
         val installed: Set<String> = withContext(Dispatchers.IO) {
             ApkExtensionInstaller.getInstalledPackageNames().toSet()
         }
+        val loadedSources: List<Source> = withContext(Dispatchers.IO) {
+            ApkExtensionInstaller.loadAllInstalled()
+                .flatMap { it.sources }
+                .filterIsInstance<Source>()
+        }
         extensions = fetched
         installedPackageNames = installed
+        installedSources = loadedSources
         isLoadingExtensions = false
+        isLoadingSources = false
+    }
+
+    if (selectedSource != null) {
+        SourceDetailScreen(
+            source = selectedSource!!,
+            onBack = { selectedSource = null }
+        )
+        return
     }
 
     Column(
@@ -140,7 +163,12 @@ fun BrowseScreen() {
         // Tab Content
         Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
             when (selectedTab) {
-                0 -> SourcesTab()
+                0 -> SourcesTab(
+                    sources = installedSources,
+                    isLoading = isLoadingSources,
+                    errorMessage = sourceErrorMessage,
+                    onSourceClick = { selectedSource = it }
+                )
                 1 -> {
                     ExtensionsTab(
                         extensions = extensions,
@@ -161,14 +189,23 @@ fun BrowseScreen() {
                                     withContext(Dispatchers.IO) {
                                         ApkExtensionInstaller.install(downloadedApk)
                                     }
+                                    val refreshedSources: List<Source> = withContext(Dispatchers.IO) {
+                                        ApkExtensionInstaller.loadAllInstalled()
+                                            .flatMap { it.sources }
+                                            .filterIsInstance<Source>()
+                                    }
                                     installedPackageNames = installedPackageNames + extension.packageName
+                                    installedSources = refreshedSources
+                                    sourceErrorMessage = null
                                     installingPackage = null
                                 } catch (e: Exception) {
                                     errorMessage = "Failed to install ${extension.name}: ${e.message}"
+                                    sourceErrorMessage = e.message
                                     installingPackage = null
                                 }
                             }
-                        }
+                        },
+                        onDismissError = { errorMessage = null }
                     )
                 }
                 2 -> {
@@ -188,7 +225,8 @@ private fun ExtensionsTab(
     installedPackageNames: Set<String>,
     installingPackage: String?,
     errorMessage: String?,
-    onInstall: (RemoteExtension) -> Unit
+    onInstall: (RemoteExtension) -> Unit,
+    onDismissError: () -> Unit
 ) {
     when {
         isLoading -> {
@@ -198,7 +236,12 @@ private fun ExtensionsTab(
         }
         errorMessage != null -> {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(text = errorMessage, color = OnSurfaceMuted)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(text = errorMessage, color = OnSurfaceMuted)
+                    TextButton(onClick = { onDismissError() }) {
+                        Text("Dismiss", color = MirahRed)
+                    }
+                }
             }
         }
         extensions.isEmpty() -> {
@@ -275,22 +318,45 @@ private fun ExtensionItem(
 }
 
 @Composable
-private fun SourcesTab() {
-    val sources = listOf("MangaDex", "MangaPlus", "Viz", "ComiXology", "ReadComicOnline")
-    
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
-        items(sources) { source ->
-            SourceItem(source)
+private fun SourcesTab(
+    sources: List<Source>,
+    isLoading: Boolean,
+    errorMessage: String?,
+    onSourceClick: (Source) -> Unit
+) {
+    when {
+        isLoading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = MirahRed)
+            }
+        }
+        errorMessage != null -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "Failed to load sources: $errorMessage", color = OnSurfaceMuted)
+            }
+        }
+        sources.isEmpty() -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = "No installed sources yet", color = OnSurfaceMuted)
+            }
+        }
+        else -> {
+            LazyColumn(modifier = Modifier.fillMaxSize()) {
+                items(sources) { source ->
+                    SourceItem(source = source, onClick = { onSourceClick(source) })
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun SourceItem(name: String) {
+private fun SourceItem(source: Source, onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(64.dp)
+            .clickable(onClick = onClick)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -302,10 +368,40 @@ private fun SourceItem(name: String) {
         )
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(text = name, color = OnSurface, fontSize = 14.sp)
-            Text(text = "English", color = OnSurfaceMuted, fontSize = 12.sp)
+            Text(text = source.name, color = OnSurface, fontSize = 14.sp)
+            Text(text = source.lang, color = OnSurfaceMuted, fontSize = 12.sp)
         }
         Spacer(modifier = Modifier.weight(1f))
-        Text(text = "Latest", color = MirahRed, fontSize = 13.sp)
+        Text(text = "Open", color = MirahRed, fontSize = 13.sp)
+    }
+}
+
+@Composable
+private fun SourceDetailScreen(source: Source, onBack: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF0D0D0D))
+            .padding(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(onClick = onBack) {
+                Text("Back", color = OnSurface)
+            }
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(text = source.name, color = OnSurface, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(text = "Language: ${source.lang}", color = OnSurfaceMuted, fontSize = 14.sp)
+        Text(text = "Source ID: ${source.id}", color = OnSurfaceMuted, fontSize = 14.sp)
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "Source opened successfully.\nCatalogue browsing UI is the next layer.",
+            color = OnSurfaceMuted,
+            fontSize = 13.sp
+        )
     }
 }
